@@ -7,8 +7,8 @@ const onerror = require('koa-onerror')
 const bodyparser = require('koa-bodyparser')
 const logger = require('koa-logger')
 const log4js = require('./utils/log4js')
+const router = require('koa-router')()
 
-const index = require('./routes/index')
 const users = require('./routes/users')
 
 dotenv.config({ path: `${__dirname}/config/${app.env}.env` })
@@ -36,12 +36,19 @@ app.use(
 
 // logger
 app.use(async (ctx, next) => {
+  if (ctx.request.method === 'GET') {
+    log4js.info(`params: ${JSON.stringify(ctx.request.query)}`)
+  } else {
+    log4js.info(`body: ${JSON.stringify(ctx.request.body)}`)
+  }
+
   await next()
 })
 
 // routes
-app.use(index.routes(), index.allowedMethods())
-app.use(users.routes(), users.allowedMethods())
+router.prefix('/api')
+router.use(users.routes(), users.allowedMethods())
+app.use(router.routes(), router.allowedMethods())
 
 // error-handling
 app.on('error', (err, ctx) => {

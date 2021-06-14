@@ -1,5 +1,6 @@
 const Koa = require('koa')
 const app = new Koa()
+const dotenv = require('dotenv')
 const views = require('koa-views')
 const json = require('koa-json')
 const onerror = require('koa-onerror')
@@ -10,8 +11,12 @@ const log4js = require('./utils/log4js')
 const index = require('./routes/index')
 const users = require('./routes/users')
 
+dotenv.config({ path: `${__dirname}/config/${app.env}.env` })
+
 // error handler
 onerror(app)
+
+require('./config/db')
 
 // middlewares
 app.use(

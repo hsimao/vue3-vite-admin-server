@@ -7,7 +7,10 @@ const onerror = require('koa-onerror')
 const bodyparser = require('koa-bodyparser')
 const logger = require('koa-logger')
 const log4js = require('./utils/log4js')
+const util = require('./utils/util')
 const router = require('koa-router')()
+const koaJwt = require('koa-jwt')
+const { jwtVerify } = require('./utils/jwt')
 
 const users = require('./routes/users')
 
@@ -34,6 +37,8 @@ app.use(
   })
 )
 
+// app.use(hello)
+
 // logger
 app.use(async (ctx, next) => {
   if (ctx.request.method === 'GET') {
@@ -45,6 +50,23 @@ app.use(async (ctx, next) => {
   await next()
 })
 
+// catch koa-jwt error
+app.use((ctx, next) =>
+  next().catch((err) => {
+    if (err.status === 401) {
+      ctx.status = 401
+      ctx.body = util.fail('Token 認證失敗', util.CODE.AUTH_ERROR)
+    } else {
+      throw err
+    }
+  })
+)
+
+app.use(
+  koaJwt({ secret: process.env.JWT_SECRET }).unless({
+    path: ['/api/users/login'],
+  })
+)
 // routes
 router.prefix('/api')
 router.use(users.routes(), users.allowedMethods())

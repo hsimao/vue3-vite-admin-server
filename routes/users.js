@@ -70,6 +70,37 @@ router.get('/list', async (ctx) => {
   }
 })
 
+router.post('/edit', async (ctx) => {
+  const { userId, job, mobile, state, roleList, deptId } = ctx.request.body
+
+  if (!userId) {
+    ctx.body = utils.fail('參數錯誤', utils.CODE.PARAM_ERROR)
+    return
+  }
+  if (!deptId || !deptId.length) {
+    ctx.body = utils.fail('部門不可為空', utils.CODE.PARAM_ERROR)
+    return
+  }
+
+  try {
+    const res = await User.findOneAndUpdate(
+      { userId },
+      { job, mobile, state, roleList, deptId }
+    )
+
+    if (res) {
+      ctx.body = utils.success(
+        { job, mobile, state, roleList, deptId },
+        '更新成功'
+      )
+      return
+    }
+    ctx.body = utils.fail('更新失敗')
+  } catch (error) {
+    ctx.body = utils.fail(`更新失敗: ${error.stack}`)
+  }
+})
+
 // 刪除用戶/批量刪除
 router.delete('/delete', async (ctx) => {
   const { userIds } = ctx.request.body

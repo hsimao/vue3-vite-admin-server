@@ -70,4 +70,24 @@ router.get('/list', async (ctx) => {
   }
 })
 
+// 刪除用戶/批量刪除
+router.delete('/delete', async (ctx) => {
+  const { userIds } = ctx.request.body
+  // 只更改用戶狀態 2: 離職, 不刪除用戶資料
+  try {
+    const res = await User.updateMany(
+      { userId: { $in: userIds } },
+      { state: 2 }
+    )
+
+    if (res.nModified) {
+      ctx.body = utils.success(res, `成功刪除 ${res.nModified} 位用戶`)
+      return
+    }
+    ctx.body = utils.fail('刪除失敗')
+  } catch (error) {
+    ctx.body = utils.fail(`刪除失敗: ${error.stack}`)
+  }
+})
+
 module.exports = router

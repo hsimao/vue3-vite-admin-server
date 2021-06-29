@@ -7,10 +7,9 @@ const onerror = require('koa-onerror')
 const bodyparser = require('koa-bodyparser')
 const logger = require('koa-logger')
 const log4js = require('./utils/log4js')
-const util = require('./utils/util')
+const utils = require('./utils')
 const router = require('koa-router')()
 const koaJwt = require('koa-jwt')
-const { jwtVerify } = require('./utils/jwt')
 
 const users = require('./routes/users')
 
@@ -55,7 +54,7 @@ app.use((ctx, next) =>
   next().catch((err) => {
     if (err.status === 401) {
       ctx.status = 401
-      ctx.body = util.fail('Token 認證失敗', util.CODE.AUTH_ERROR)
+      ctx.body = utils.fail('Token 認證失敗', utils.CODE.AUTH_ERROR)
     } else {
       throw err
     }

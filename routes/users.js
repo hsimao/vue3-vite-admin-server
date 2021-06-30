@@ -1,6 +1,8 @@
 // 用戶管理
 const router = require('koa-router')()
+const md5 = require('md5')
 const User = require('./../models/userSchema')
+const Counter = require('./../models/counterSchema')
 const utils = require('../utils')
 const { createToken } = require('./../utils/jwt')
 
@@ -10,7 +12,7 @@ router.post('/login', async (ctx, next) => {
   try {
     const { userName, userPassword } = ctx.request.body
     const res = await User.findOne(
-      { userName, userPassword },
+      { userName, userPassword: md5(userPassword) },
       {
         userId: 1,
         userName: 1,
@@ -22,12 +24,11 @@ router.post('/login', async (ctx, next) => {
       }
     )
 
-    const data = {
-      ...res._doc,
-      token: createToken(res),
-    }
-
     if (res) {
+      const data = {
+        ...res._doc,
+        token: createToken(res),
+      }
       ctx.body = utils.success(data)
     } else {
       ctx.body = utils.fail('帳號或密碼錯誤！')
@@ -67,6 +68,75 @@ router.get('/list', async (ctx) => {
     })
   } catch (error) {
     ctx.body = utils.fail(`查詢異常: ${error.stack}`)
+  }
+})
+
+router.post('/create', async (ctx) => {
+  const {
+    userName,
+    userEmail,
+    job,
+    mobile,
+    state,
+    roleList,
+    deptId,
+  } = ctx.request.body
+
+  // 檢查參數
+  if (!userName || !userEmail || !deptId) {
+    ctx.body = utils.fail('參數錯誤', utils.CODE.PARAM_ERROR)
+    return
+  }
+
+  try {
+    // 檢查 userName、userEmail 是否已經存在
+    const user = await User.findOne(
+      { $or: [{ userName }, { userEmail }] },
+      '_id userName userEmail'
+    )
+
+    if (user) {
+      ctx.body = utils.fail('用戶 name 或 email 已存在, 無法新增')
+      return
+    }
+
+    // 取得累進 userId
+    const doc = await Counter.findOneAndUpdate(
+      { _id: 'userId' },
+      { $inc: { sequence_value: 1 } }, // 累加 1
+      { new: true }
+    )
+
+    // counter userId 資料表位創建, 初始 coutner userId 資料表
+    // 直接返回錯誤, 讓操作人員再重送一次
+    if (!doc) {
+      await Counter.create({ _id: 'userId', sequence_value: 10001 })
+      ctx.body = utils.fail('新增失敗')
+      return
+    }
+
+    const userData = {
+      userId: doc.sequence_value,
+      userName,
+      userPassword: md5('123456'),
+      userEmail,
+      job,
+      mobile,
+      state,
+      roleList,
+      deptId,
+    }
+
+    // 創建新用戶
+    const res = await User.create(userData)
+
+    if (res) {
+      ctx.body = utils.success({ userId: res.userId }, '新增用戶成功')
+      return
+    }
+    ctx.body = utils.fail('新增用戶失敗')
+  } catch (error) {
+    ctx.body = utils.fail(`新增用戶失敗: ${error.stack}`)
   }
 })
 

@@ -36,8 +36,6 @@ app.use(
   })
 )
 
-// app.use(hello)
-
 // logger
 app.use(async (ctx, next) => {
   if (ctx.request.method === 'GET') {
